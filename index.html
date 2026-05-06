@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drone Delivery Path Finder — BFS vs DFS</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- background grid pattern -->
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">DronePath<span class="logo-accent">AI</span></span>
+      </div>
+      <div class="header-meta">
+        <span class="badge badge-bfs">BFS</span>
+        <span class="badge badge-dfs">DFS</span>
+        <span class="header-label">Problem 9 — AI Assignment</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- hero -->
+  <section class="hero">
+    <h1 class="hero-title">Drone Delivery<br/><span class="hero-accent">Path Finder</span></h1>
+    <p class="hero-sub">Interactive BFS vs DFS path visualization on a city grid with obstacles</p>
+  </section>
+
+  <!-- main layout -->
+  <main class="app-layout">
+
+    <!-- LEFT: controls -->
+    <aside class="controls-panel">
+
+      <div class="control-section">
+        <p class="section-label">Grid Configuration</p>
+        <div class="control-row">
+          <label for="gridSize">Grid Size</label>
+          <div class="input-row">
+            <input type="range" id="gridSize" min="4" max="12" value="7" />
+            <span class="range-val" id="gridSizeVal">7×7</span>
+          </div>
+        </div>
+        <div class="btn-group-vert">
+          <button class="btn btn-outline" onclick="App.applySize()">Apply Size</button>
+          <button class="btn btn-outline" onclick="App.randomObstacles()">
+            <span>⬡</span> Random Obstacles
+          </button>
+          <button class="btn btn-outline btn-danger" onclick="App.clearGrid()">Clear Grid</button>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <p class="section-label">Edit Mode</p>
+        <div class="mode-buttons">
+          <button class="mode-btn active" id="mode-obstacle" onclick="App.setMode('obstacle')">
+            🧱<span>Obstacle</span>
+          </button>
+          <button class="mode-btn" id="mode-start" onclick="App.setMode('start')">
+            🚁<span>Start</span>
+          </button>
+          <button class="mode-btn" id="mode-goal" onclick="App.setMode('goal')">
+            📦<span>Goal</span>
+          </button>
+        </div>
+        <p class="hint-text">Click cells on the grid to edit</p>
+      </div>
+
+      <div class="control-section">
+        <p class="section-label">Algorithms</p>
+        <button class="btn btn-bfs" onclick="App.run('bfs')">▶ Run BFS</button>
+        <button class="btn btn-dfs" onclick="App.run('dfs')">▶ Run DFS</button>
+        <button class="btn btn-both" onclick="App.runBoth()">▶ Run Both &amp; Compare</button>
+        <button class="btn btn-outline" onclick="App.clearResults()" style="margin-top:6px">Clear Results</button>
+      </div>
+
+      <div class="control-section">
+        <p class="section-label">Legend</p>
+        <div class="legend-grid">
+          <div class="leg-item"><div class="leg-dot" style="background:#1D9E75"></div><span>Start 🚁</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#D85A30"></div><span>Goal 📦</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#2a2a2a;border:1px solid #555"></div><span>Obstacle</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#c8e6ff"></div><span>BFS visited</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#378ADD"></div><span>BFS path</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#fdecc8"></div><span>DFS visited</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#E8733A"></div><span>DFS path</span></div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- CENTER: grid -->
+    <div class="grid-area">
+      <div class="grid-header">
+        <span id="gridLabel">7 × 7 City Grid</span>
+        <div class="coord-hint">row, col</div>
+      </div>
+      <div class="grid-wrapper">
+        <div id="gridContainer"></div>
+      </div>
+      <div class="path-display" id="pathDisplay">
+        <span class="path-placeholder">Run an algorithm to see the path here...</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: stats -->
+    <div class="stats-panel">
+      <p class="section-label">Statistics</p>
+
+      <div class="stat-block" id="statBFS">
+        <div class="stat-algo-label"><span class="badge badge-bfs">BFS</span> Breadth-First Search</div>
+        <div class="stat-row"><span>Status</span><span id="bfsStatus" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Path Length</span><span id="bfsPath" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Nodes Explored</span><span id="bfsNodes" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Time</span><span id="bfsTime" class="stat-val">—</span></div>
+        <div class="stat-tag">Guaranteed shortest path</div>
+      </div>
+
+      <div class="stat-block" id="statDFS">
+        <div class="stat-algo-label"><span class="badge badge-dfs">DFS</span> Depth-First Search</div>
+        <div class="stat-row"><span>Status</span><span id="dfsStatus" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Path Length</span><span id="dfsPath" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Nodes Explored</span><span id="dfsNodes" class="stat-val">—</span></div>
+        <div class="stat-row"><span>Time</span><span id="dfsTime" class="stat-val">—</span></div>
+        <div class="stat-tag stat-tag-dfs">Not guaranteed optimal</div>
+      </div>
+
+      <div class="comparison-block" id="compBlock" style="display:none">
+        <p class="section-label" style="margin-bottom:10px">Comparison</p>
+        <div id="compContent"></div>
+      </div>
+
+      <div class="algo-info">
+        <p class="section-label">How it works</p>
+        <div class="algo-tab-btns">
+          <button class="tab-btn active" onclick="App.showTab('bfs')">BFS</button>
+          <button class="tab-btn" onclick="App.showTab('dfs')">DFS</button>
+        </div>
+        <div class="tab-content" id="tab-bfs">
+          <p>Uses a <strong>queue (FIFO)</strong>. Explores all neighbours at current depth before going deeper. Guarantees the <strong>shortest path</strong> in unweighted grids.</p>
+          <code>while queue:<br>&nbsp;&nbsp;node = queue.popleft()<br>&nbsp;&nbsp;for each neighbour:<br>&nbsp;&nbsp;&nbsp;&nbsp;queue.append(nb)</code>
+        </div>
+        <div class="tab-content hidden" id="tab-dfs">
+          <p>Uses a <strong>stack (LIFO)</strong>. Explores as deep as possible before backtracking. Finds a valid path but <strong>not necessarily shortest</strong>.</p>
+          <code>while stack:<br>&nbsp;&nbsp;node = stack.pop()<br>&nbsp;&nbsp;for each neighbour:<br>&nbsp;&nbsp;&nbsp;&nbsp;stack.append(nb)</code>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <span>Problem 9 — Drone Delivery Path Finder System &nbsp;·&nbsp; BFS &amp; DFS &nbsp;·&nbsp; AI Assignment</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
